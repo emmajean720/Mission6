@@ -7,10 +7,6 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// Initialize the database
-var movieRepo = new MovieRepository();
-movieRepo.InitializeDatabase();
-
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

@@ -3,20 +3,21 @@
 *@
 @{
 }
+
 @model List<Mission6.Models.Movie>
-
-<h2>Joel Hilton Film Collection</h2>
-
+<!--Creates the viewing table-->
+<h2>Movie Collection</h2>
 <table class="table table-striped">
     <thead>
         <tr>
             <th>Title</th>
-            <th>Category</th>
+            <th>Year</th>
             <th>Director</th>
             <th>Rating</th>
             <th>Edited</th>
             <th>Lent To</th>
             <th>Notes</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -24,12 +25,19 @@
         {
             <tr>
                 <td>@movie.Title</td>
-                <td>@movie.Category</td>
+                <td>@movie.Year</td>
                 <td>@movie.Director</td>
                 <td>@movie.Rating</td>
-                <td>@(movie.Edited.HasValue ? (movie.Edited.Value ? "Yes" : "No") : "")</td>
+                <td>@(movie.Edited ? "Yes" : "No")</td>
                 <td>@movie.LentTo</td>
                 <td>@movie.Notes</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@movie.MovieID" class="btn btn-warning">Edit</a>
+                    <form asp-action="Delete" method="post" style="display:inline;">
+                        <input type="hidden" name="id" value="@movie.MovieID" />
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </td>
             </tr>
         }
     </tbody>

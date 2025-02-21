@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Mission6.Models;
-
+//this stuff is handling the home navigation
 namespace Mission6.Controllers
 {
     public class HomeController : Controller

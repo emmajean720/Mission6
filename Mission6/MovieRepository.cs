@@ -1,37 +1,18 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Mission6.Models;
+using Mission6.Models; // Ensure this using directive is present
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
-using System.IO;
 
 namespace Mission6.Data
 {
     public class MovieRepository
     {
-        private readonly string _connectionString = "Data Source=FilmCollection.db;Version=3;";
+        private readonly string _connectionString;
 
-
-        public void InitializeDatabase()
+        public MovieRepository(IConfiguration configuration)
         {
-            using (var connection = new SQLiteConnection(_connectionString))
-            {
-                connection.Open();
-                var command = connection.CreateCommand();
-                command.CommandText = @"
-                CREATE TABLE IF NOT EXISTS Movies (
-                    MovieId INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Title TEXT NOT NULL,
-                    Category TEXT NOT NULL,
-                    Director TEXT NOT NULL,
-                    Rating TEXT NOT NULL,
-                    Edited BOOLEAN,
-                    LentTo TEXT,
-                    Notes TEXT
-                );
-            ";
-                command.ExecuteNonQuery();
-            }
+            _connectionString = configuration.GetConnectionString("FilmCollectionDB");
         }
 
         public List<Movie> GetAllMovies()
@@ -41,7 +22,10 @@ namespace Mission6.Data
             using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
-                string query = "SELECT * FROM Movies";
+                string query = @"
+                    SELECT MovieId, Title, Year, Director, Rating, Edited, LentTo, CopiedToPlex, Notes
+                    FROM Movies;
+                ";
 
                 using (var command = new SQLiteCommand(query, connection))
                 {
@@ -51,13 +35,14 @@ namespace Mission6.Data
                         {
                             movies.Add(new Movie
                             {
-                                MovieID = Convert.ToInt32(reader["MovieID"]),
+                                MovieID = Convert.ToInt32(reader["MovieId"]),
                                 Title = reader["Title"].ToString(),
-                                Category = reader["Category"].ToString(),
-                                Director = reader["Director"].ToString(),
-                                Rating = reader["Rating"].ToString(),
-                                Edited = reader["Edited"] != DBNull.Value ? (bool?)Convert.ToBoolean(reader["Edited"]) : null,
+                                Year = Convert.ToInt32(reader["Year"]),
+                                Director = reader["Director"] != DBNull.Value ? reader["Director"].ToString() : null,
+                                Rating = reader["Rating"] != DBNull.Value ? reader["Rating"].ToString() : null,
+                                Edited = Convert.ToBoolean(reader["Edited"]),
                                 LentTo = reader["LentTo"] != DBNull.Value ? reader["LentTo"].ToString() : null,
+                                CopiedToPlex = Convert.ToBoolean(reader["CopiedToPlex"]),
                                 Notes = reader["Notes"] != DBNull.Value ? reader["Notes"].ToString() : null
                             });
                         }
@@ -67,7 +52,7 @@ namespace Mission6.Data
 
             return movies;
         }
-
+        //add rows
         public void AddMovie(Movie movie)
         {
             using (var connection = new SQLiteConnection(_connectionString))
@@ -75,17 +60,58 @@ namespace Mission6.Data
                 connection.Open();
                 var command = connection.CreateCommand();
                 command.CommandText = @"
-                INSERT INTO Movies (Title, Category, Director, Rating, Edited, LentTo, Notes)
-                VALUES (@Title, @Category, @Director, @Rating, @Edited, @LentTo, @Notes);
-            ";
+                    INSERT INTO Movies (Title, Year, Director, Rating, Edited, LentTo, CopiedToPlex, Notes)
+                    VALUES (@Title, @Year, @Director, @Rating, @Edited, @LentTo, @CopiedToPlex, @Notes);
+                ";
 
                 command.Parameters.AddWithValue("@Title", movie.Title);
-                command.Parameters.AddWithValue("@Category", movie.Category);
-                command.Parameters.AddWithValue("@Director", movie.Director);
-                command.Parameters.AddWithValue("@Rating", movie.Rating);
-                command.Parameters.AddWithValue("@Edited", movie.Edited ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@Year", movie.Year);
+                command.Parameters.AddWithValue("@Director", movie.Director ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@Rating", movie.Rating ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@Edited", movie.Edited);
                 command.Parameters.AddWithValue("@LentTo", movie.LentTo ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@CopiedToPlex", movie.CopiedToPlex);
                 command.Parameters.AddWithValue("@Notes", movie.Notes ?? (object)DBNull.Value);
+
+                command.ExecuteNonQuery();
+            }
+        }
+        //update rows
+        public void UpdateMovie(Movie movie)
+        {
+            using (var connection = new SQLiteConnection(_connectionString))
+            {
+                connection.Open();
+                var command = connection.CreateCommand();
+                command.CommandText = @"
+                    UPDATE Movies
+                    SET Title = @Title, Year = @Year, Director = @Director, Rating = @Rating, 
+                        Edited = @Edited, LentTo = @LentTo, CopiedToPlex = @CopiedToPlex, Notes = @Notes
+                    WHERE MovieId = @MovieId;
+                ";
+
+                command.Parameters.AddWithValue("@MovieId", movie.MovieID);
+                command.Parameters.AddWithValue("@Title", movie.Title);
+                command.Parameters.AddWithValue("@Year", movie.Year);
+                command.Parameters.AddWithValue("@Director", movie.Director ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@Rating", movie.Rating ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@Edited", movie.Edited);
+                command.Parameters.AddWithValue("@LentTo", movie.LentTo ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@CopiedToPlex", movie.CopiedToPlex);
+                command.Parameters.AddWithValue("@Notes", movie.Notes ?? (object)DBNull.Value);
+
+                command.ExecuteNonQuery();
+            }
+        }
+        //deleting rows
+        public void DeleteMovie(int movieId)
+        {
+            using (var connection = new SQLiteConnection(_connectionString))
+            {
+                connection.Open();
+                var command = connection.CreateCommand();
+                command.CommandText = "DELETE FROM Movies WHERE MovieId = @MovieId";
+                command.Parameters.AddWithValue("@MovieId", movieId);
 
                 command.ExecuteNonQuery();
             }
